@@ -1,0 +1,59 @@
+import numpy as np
+import cv2
+import os
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+def preprocess_image(image_path, target_size=(64, 64)):
+    img = cv2.imread(image_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert from BGR to RGB
+    img = cv2.resize(img, target_size)
+    img = img / 255.0  # Normalize pixel values to be between 0 and 1
+    return img.flatten()  # Flatten the 3D image array to 1D
+def load_data(data_dir):
+    X = []
+    y = []
+    for label, category in enumerate(['cat', 'dog']):
+        category_folder = os.path.join(data_dir, category)
+        for image_name in os.listdir(category_folder):
+            image_path = os.path.join(category_folder, image_name)
+            try:
+                img = preprocess_image(image_path)
+                X.append(img)
+                y.append(label)
+            except Exception as e:
+                print(f"Error loading image {image_path}: {e}")
+    return np.array(X), np.array(y)
+# Assuming your dataset is organized into train and test directories
+train_dir = 'path/to/train'
+test_dir = 'path/to/test'
+
+X_train, y_train = load_data(train_dir)
+X_test, y_test = load_data(test_dir)
+
+# Check the shape of the data
+print(f"X_train shape: {X_train.shape}, y_train shape: {y_train.shape}")
+print(f"X_test shape: {X_test.shape}, y_test shape: {y_test.shape}")
+# Create an SVM classifier
+svm_clf = SVC(kernel='linear', random_state=0)
+
+# Train the SVM classifier
+svm_clf.fit(X_train, y_train)
+# Predict on the test set
+y_pred = svm_clf.predict(X_test)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy}")
+
+# Classification report
+print(classification_report(y_test, y_pred, target_names=['cat', 'dog']))
+import joblib
+
+# Save the model to disk
+joblib.dump(svm_clf, 'svm_model.pkl')
+
+# Later, load the model from disk
+# loaded_model = joblib.load('svm_model.pkl')
